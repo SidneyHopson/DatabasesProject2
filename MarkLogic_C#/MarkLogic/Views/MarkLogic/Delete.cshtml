@@ -1,0 +1,17 @@
+﻿@{
+    ViewData["Title"] = "Delete";
+}
+
+<h2>Delete</h2>
+
+<h3>Enter the URI for the document you want to delete:</h3>
+<div>
+    <hr />
+    
+    
+    <form asp-action="Delete">
+        <input type="text" value="uri" />
+        <input type="submit" value="Delete" class="btn btn-default" /> |
+        <a asp-action="Browse">Back to List</a>
+    </form>
+</div>
