@@ -12,9 +12,9 @@ namespace MarkLogic.Controllers
 {
     public class MarkLogicController : Controller
     {
-
-        public async Task<Stream> Browse(List<IFormFile> files, string start)
+        public async Task<Stream> Browse(string start)
         {
+            start = "0";
             string pageLength = "100";
             using (var client = new HttpClient())
             {
@@ -24,7 +24,6 @@ namespace MarkLogic.Controllers
                 };
                 var httpClient = new HttpClient(httpClientHandler);
                 httpClient.DefaultRequestHeaders.Accept.Clear();
-                //httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue());
                 var result = await httpClient.GetStreamAsync("http://e8instructsql2.ad.psu.edu:8000/LATEST/search?start=" + start + "&pageLength=" + pageLength);
                 return result;
             }
@@ -36,7 +35,7 @@ namespace MarkLogic.Controllers
             return View();
         }
 
-        public async Task<string> Get(IFormFile file, string uri)
+        public async Task<string> Get(string uri)
         {
             using (var client = new HttpClient())
             {
@@ -46,7 +45,6 @@ namespace MarkLogic.Controllers
                 };
                 var httpClient = new HttpClient(httpClientHandler);
                 httpClient.DefaultRequestHeaders.Accept.Clear();
-               // httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue());
                 var result = await httpClient.GetStringAsync("http://e8instructsql2.ad.psu.edu:8000/LATEST/documents?uri=" + uri);
                 return result;
             }
@@ -58,7 +56,7 @@ namespace MarkLogic.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Upload( List<IFormFile> files, string uri)
+        public async Task<IActionResult> Upload( List<IFormFile> files)
         {
             long size = files.Sum(f => f.Length);
             foreach (var formFile in files)
@@ -69,19 +67,20 @@ namespace MarkLogic.Controllers
                     HttpContent content = new StreamContent(s);
                     using (var client = new HttpClient())
                     {
-                        var httpClientHandler = new HttpClientHandler()
+                        var httpClientHandler = new HttpClientHandler() 
                         {
                             Credentials = new NetworkCredential("admin", "admin"),
                         };
                         var httpClient = new HttpClient(httpClientHandler);
                         httpClient.DefaultRequestHeaders.Accept.Clear();
                         httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(formFile.ContentType));
-                        await httpClient.PostAsync("http://e8instructsql2.ad.psu.edu:8000/LATEST/documents?uri=" + uri, content);
+                        await httpClient.PutAsync("http://e8instructsql2.ad.psu.edu:8000/LATEST/documents?uri=/sdh5404/" + formFile.FileName, content);
                     }
                 }
                 
             }
-            return Ok(new { count = files.Count, size});
+            return RedirectToAction(nameof(Browse));
+            //return Ok(new { count = files.Count, size});
             // NuGet Newtonsoft.Json library for object conversion
             // string json = JsonConvert.SerializeObject(account, Formatting.Indented);
             // Account account_back = JsonConvert.DeserializeObject<Account>(json);
