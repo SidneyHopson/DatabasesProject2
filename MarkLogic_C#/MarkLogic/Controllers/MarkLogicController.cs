@@ -12,7 +12,7 @@ namespace MarkLogic.Controllers
 {
     public class MarkLogicController : Controller
     {
-        public async Task<Stream> Browse(string start)
+        public async Task<IActionResult> Browse(string start)
         {
             start = "0";
             string pageLength = "100";
@@ -25,15 +25,12 @@ namespace MarkLogic.Controllers
                 var httpClient = new HttpClient(httpClientHandler);
                 httpClient.DefaultRequestHeaders.Accept.Clear();
                 var result = await httpClient.GetStreamAsync("http://e8instructsql2.ad.psu.edu:8000/LATEST/search?start=" + start + "&pageLength=" + pageLength);
-                return result;
+                return View(result);
             }
             
         }
 
-        public IActionResult Download()
-        {
-            return View();
-        }
+       
 
         public async Task<string> Get(string uri)
         {
@@ -93,11 +90,8 @@ namespace MarkLogic.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(List<IFormFile> files, string uri)
+        public async Task<IActionResult> Delete(string uri)
         {
-            long size = files.Sum(f => f.Length);
-            foreach (var form in files)
-            {
                 using (var client = new HttpClient())
                 {
                     var httpClientHandler = new HttpClientHandler()
@@ -107,11 +101,16 @@ namespace MarkLogic.Controllers
                     var httpClient = new HttpClient();
                     await httpClient.DeleteAsync("http://e8instructsql2.ad.psu.edu:8000/LATEST/documents?uri=" + uri);
                 }
-            }
+
             return RedirectToAction(nameof(Browse));
         }
 
-        public async Task<Stream> GetDoc(string uri)
+        public IActionResult Download()
+        {
+            return View();
+        }
+
+        public async Task<FileContentResult> GetDoc(string uri)
         {
             using (var client = new HttpClient())
             {
@@ -121,14 +120,25 @@ namespace MarkLogic.Controllers
                 };
                 var httpClient = new HttpClient(httpClientHandler);
                 var result = await httpClient.GetStreamAsync("http://e8instructsql2.ad.psu.edu:8000/LATEST/documents?uri=" + uri);
-                //Response.Headers.Add("Content-Disposition", "filename=" + fileName);
-                //return File(data, result.GetType);
-                return result;
+
+                HttpContent content = new StreamContent(result);
+                byte[] data = await content.ReadAsByteArrayAsync();
+
+                int index = uri.LastIndexOf("/");
+                string fileName = uri.Substring(index);
+                Response.Headers.Add("Content-Disposition", "filename=" + fileName);
+                return File(data, "application/xml");
             }
+        }
+
+        public IActionResult SimpleSearch()
+        {
+            return View();
         }
 
         public async Task<Stream> StringQueryDoc(string uri, string start)
         {
+            start = "0";
             string length = "100";
             using (var client = new HttpClient())
             {
@@ -138,7 +148,8 @@ namespace MarkLogic.Controllers
                 };
                 var httpClient = new HttpClient(httpClientHandler);
                 var result = await httpClient.GetStreamAsync("http://e8instructsql2.ad.psu.edu:8000/LATEST/search?q=" + uri +"&start=" + start +"&pageLength=" + length);
-
+                StreamContent content = new StreamContent(result);
+                
                 
                 // Retrieving the confidence and fitness levels through the received XML document.
                 //doc.Confidence = Convert.ToDouble(node.Attributes["confidence"].InnerXml);
